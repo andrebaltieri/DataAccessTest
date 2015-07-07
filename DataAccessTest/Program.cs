@@ -19,10 +19,19 @@ namespace DataAccessTest
         {
             AdoDataAccess();
             Console.WriteLine();
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
             DapperDataAccess();
             Console.WriteLine();
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
             EfDataAccess();
             Console.WriteLine();
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
+            EfFastDataAccess();
+            Console.WriteLine();
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
+            EfMoreFastDataAccess();
+            Console.WriteLine();
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
             NhDataAccess();
 
             Console.WriteLine();
@@ -89,22 +98,71 @@ namespace DataAccessTest
 
         public static void EfDataAccess()
         {
-            DataContext db = new DataContext();
-
-            string connectionString = ConfigurationManager.ConnectionStrings["ConnectionString"].ConnectionString;
-            List<Customer> customers = new List<Customer>();
-
-            var stopwatch = Stopwatch.StartNew();
-            //db.Database.Log = Console.Write;
-            customers = db.Customers.ToList();
-            stopwatch.Stop();
+            List<Customer> customers;
+            Stopwatch stopwatch;
+            var db = new DataContext();
+            using (db)
+            {
+                stopwatch = Stopwatch.StartNew();
+                customers = db.Customers.ToList();
+                stopwatch.Stop();
+            }
+            db = null;
 
             Console.WriteLine("Entity Framework");
             Console.WriteLine("Objetos Gerados: {0}", customers.Count);
             Console.WriteLine("Tempo Total: {0}", stopwatch.Elapsed);
 
             customers = null;
-            db.Dispose();
+        }
+        public static void EfFastDataAccess()
+        {
+            List<Customer> customers;
+            Stopwatch stopwatch;
+            var db = new DataContext();
+            using (db)
+            {
+                db.Configuration.AutoDetectChangesEnabled = false;
+                db.Configuration.EnsureTransactionsForFunctionsAndCommands = false;
+                db.Configuration.LazyLoadingEnabled = false;
+                db.Configuration.ProxyCreationEnabled = false;
+                db.Configuration.UseDatabaseNullSemantics = false;
+                stopwatch = Stopwatch.StartNew();
+                customers = db.Customers.AsNoTracking().ToList();
+                stopwatch.Stop();
+            }
+            db = null;
+
+            Console.WriteLine("Entity Framework Rápido");
+            Console.WriteLine("Objetos Gerados: {0}", customers.Count);
+            Console.WriteLine("Tempo Total: {0}", stopwatch.Elapsed);
+
+            customers = null;
+        }
+        public static void EfMoreFastDataAccess()
+        {
+            List<Customer> customers;
+            Stopwatch stopwatch;
+            var db = new DataContext();
+            using (db)
+            {
+                db.Configuration.AutoDetectChangesEnabled = false;
+                db.Configuration.EnsureTransactionsForFunctionsAndCommands = false;
+                db.Configuration.LazyLoadingEnabled = false;
+                db.Configuration.ProxyCreationEnabled = false;
+                db.Configuration.UseDatabaseNullSemantics = false;
+                db.Customers.AsNoTracking().FirstOrDefault();
+                stopwatch = Stopwatch.StartNew();
+                customers = db.Customers.AsNoTracking().ToList();
+                stopwatch.Stop();
+            }
+            db = null;
+
+            Console.WriteLine("Entity Framework Mais Rápido");
+            Console.WriteLine("Objetos Gerados: {0}", customers.Count);
+            Console.WriteLine("Tempo Total: {0}", stopwatch.Elapsed);
+
+            customers = null;
         }
 
         public static void NhDataAccess()
