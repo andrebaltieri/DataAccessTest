@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Linq;
 using Dapper;
 using DataAccessTest.EntityFramework;
@@ -34,7 +35,7 @@ namespace DataAccessTest
             string connectionString = ConfigurationManager.ConnectionStrings["ConnectionString"].ConnectionString;
             List<Customer> customers = new List<Customer>();
 
-            var startDate = DateTime.Now;
+            var stopwatch = Stopwatch.StartNew();
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 conn.Open();
@@ -56,13 +57,11 @@ namespace DataAccessTest
 
                 conn.Close();
             }
-            var endDate = DateTime.Now;
+            stopwatch.Stop();
 
             Console.WriteLine("ADO Puro");
             Console.WriteLine("Objetos Gerados: {0}", customers.Count);
-            Console.WriteLine("Início: {0}", startDate);
-            Console.WriteLine("Término: {0}", endDate);
-            Console.WriteLine("Tempo Total: {0}", (endDate - startDate));
+            Console.WriteLine("Tempo Total: {0}", stopwatch.Elapsed);
 
             customers = null;
         }
@@ -72,20 +71,18 @@ namespace DataAccessTest
             string connectionString = ConfigurationManager.ConnectionStrings["ConnectionString"].ConnectionString;
             IEnumerable<Customer> customers = new List<Customer>();
 
-            var startDate = DateTime.Now;
+            var stopwatch = Stopwatch.StartNew();
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 conn.Open();
                 customers = conn.Query<Customer>("SELECT [id] as Id,[first_name] as FirstName, [last_name] as LastName, [email] as Email, [country] as Country FROM [dbo].[Customer]");
                 conn.Close();
             }
-            var endDate = DateTime.Now;
+            stopwatch.Stop();
 
             Console.WriteLine("Dapper");
             Console.WriteLine("Objetos Gerados: {0}", customers.ToList().Count);
-            Console.WriteLine("Início: {0}", startDate);
-            Console.WriteLine("Término: {0}", endDate);
-            Console.WriteLine("Tempo Total: {0}", (endDate - startDate));
+            Console.WriteLine("Tempo Total: {0}", stopwatch.Elapsed);
 
             customers = null;
         }
@@ -97,16 +94,14 @@ namespace DataAccessTest
             string connectionString = ConfigurationManager.ConnectionStrings["ConnectionString"].ConnectionString;
             List<Customer> customers = new List<Customer>();
 
-            var startDate = DateTime.Now;
+            var stopwatch = Stopwatch.StartNew();
             //db.Database.Log = Console.Write;
             customers = db.Customers.ToList();
-            var endDate = DateTime.Now;
+            stopwatch.Stop();
 
             Console.WriteLine("Entity Framework");
             Console.WriteLine("Objetos Gerados: {0}", customers.Count);
-            Console.WriteLine("Início: {0}", startDate);
-            Console.WriteLine("Término: {0}", endDate);
-            Console.WriteLine("Tempo Total: {0}", (endDate - startDate));
+            Console.WriteLine("Tempo Total: {0}", stopwatch.Elapsed);
 
             customers = null;
             db.Dispose();
@@ -119,18 +114,16 @@ namespace DataAccessTest
             string connectionString = ConfigurationManager.ConnectionStrings["ConnectionString"].ConnectionString;
             List<Customer> customers = new List<Customer>();
 
-            var startDate = DateTime.Now;
+            var stopwatch = Stopwatch.StartNew();
             using (var session = sessionFactory.OpenSession())
             {
                 customers = session.Query<Customer>().ToList();
             }
-            var endDate = DateTime.Now;
+            stopwatch.Stop();
 
             Console.WriteLine("NHibernate");
             Console.WriteLine("Objetos Gerados: {0}", customers.Count);
-            Console.WriteLine("Início: {0}", startDate);
-            Console.WriteLine("Término: {0}", endDate);
-            Console.WriteLine("Tempo Total: {0}", (endDate - startDate));
+            Console.WriteLine("Tempo Total: {0}", stopwatch.Elapsed);
 
             customers = null;
             sessionFactory.Dispose();
