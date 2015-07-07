@@ -1,16 +1,14 @@
-﻿using DataAccessTest.EntityFramework;
-using System;
-using System.Linq;
-using System.Data.Entity;
+﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data.SqlClient;
-using System.Data.Entity.Core.Objects;
+using System.Linq;
 using Dapper;
-using NHibernate;
-using NHibernate.Linq;
+using DataAccessTest.EntityFramework;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
+using NHibernate;
+using NHibernate.Linq;
 
 namespace DataAccessTest
 {
@@ -117,7 +115,7 @@ namespace DataAccessTest
         public static void NhDataAccess()
         {
             var sessionFactory = CreateSessionFactory();
-            
+
             string connectionString = ConfigurationManager.ConnectionStrings["ConnectionString"].ConnectionString;
             List<Customer> customers = new List<Customer>();
 
