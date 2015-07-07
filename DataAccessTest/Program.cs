@@ -1,16 +1,15 @@
-﻿using DataAccessTest.EntityFramework;
-using System;
-using System.Linq;
-using System.Data.Entity;
+﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data.SqlClient;
-using System.Data.Entity.Core.Objects;
+using System.Diagnostics;
+using System.Linq;
 using Dapper;
-using NHibernate;
-using NHibernate.Linq;
+using DataAccessTest.EntityFramework;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
+using NHibernate;
+using NHibernate.Linq;
 
 namespace DataAccessTest
 {
@@ -20,10 +19,19 @@ namespace DataAccessTest
         {
             AdoDataAccess();
             Console.WriteLine();
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
             DapperDataAccess();
             Console.WriteLine();
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
             EfDataAccess();
             Console.WriteLine();
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
+            EfFastDataAccess();
+            Console.WriteLine();
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
+            EfMoreFastDataAccess();
+            Console.WriteLine();
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
             NhDataAccess();
 
             Console.WriteLine();
@@ -36,7 +44,7 @@ namespace DataAccessTest
             string connectionString = ConfigurationManager.ConnectionStrings["ConnectionString"].ConnectionString;
             List<Customer> customers = new List<Customer>();
 
-            var startDate = DateTime.Now;
+            var stopwatch = Stopwatch.StartNew();
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 conn.Open();
@@ -58,13 +66,11 @@ namespace DataAccessTest
 
                 conn.Close();
             }
-            var endDate = DateTime.Now;
+            stopwatch.Stop();
 
             Console.WriteLine("ADO Puro");
             Console.WriteLine("Objetos Gerados: {0}", customers.Count);
-            Console.WriteLine("Início: {0}", startDate);
-            Console.WriteLine("Término: {0}", endDate);
-            Console.WriteLine("Tempo Total: {0}", (endDate - startDate));
+            Console.WriteLine("Tempo Total: {0}", stopwatch.Elapsed);
 
             customers = null;
         }
@@ -74,65 +80,108 @@ namespace DataAccessTest
             string connectionString = ConfigurationManager.ConnectionStrings["ConnectionString"].ConnectionString;
             IEnumerable<Customer> customers = new List<Customer>();
 
-            var startDate = DateTime.Now;
+            var stopwatch = Stopwatch.StartNew();
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 conn.Open();
                 customers = conn.Query<Customer>("SELECT [id] as Id,[first_name] as FirstName, [last_name] as LastName, [email] as Email, [country] as Country FROM [dbo].[Customer]");
                 conn.Close();
             }
-            var endDate = DateTime.Now;
+            stopwatch.Stop();
 
             Console.WriteLine("Dapper");
             Console.WriteLine("Objetos Gerados: {0}", customers.ToList().Count);
-            Console.WriteLine("Início: {0}", startDate);
-            Console.WriteLine("Término: {0}", endDate);
-            Console.WriteLine("Tempo Total: {0}", (endDate - startDate));
+            Console.WriteLine("Tempo Total: {0}", stopwatch.Elapsed);
 
             customers = null;
         }
 
         public static void EfDataAccess()
         {
-            DataContext db = new DataContext();
-
-            string connectionString = ConfigurationManager.ConnectionStrings["ConnectionString"].ConnectionString;
-            List<Customer> customers = new List<Customer>();
-
-            var startDate = DateTime.Now;
-            //db.Database.Log = Console.Write;
-            customers = db.Customers.ToList();
-            var endDate = DateTime.Now;
+            List<Customer> customers;
+            Stopwatch stopwatch;
+            var db = new DataContext();
+            using (db)
+            {
+                stopwatch = Stopwatch.StartNew();
+                customers = db.Customers.ToList();
+                stopwatch.Stop();
+            }
+            db = null;
 
             Console.WriteLine("Entity Framework");
             Console.WriteLine("Objetos Gerados: {0}", customers.Count);
-            Console.WriteLine("Início: {0}", startDate);
-            Console.WriteLine("Término: {0}", endDate);
-            Console.WriteLine("Tempo Total: {0}", (endDate - startDate));
+            Console.WriteLine("Tempo Total: {0}", stopwatch.Elapsed);
 
             customers = null;
-            db.Dispose();
+        }
+        public static void EfFastDataAccess()
+        {
+            List<Customer> customers;
+            Stopwatch stopwatch;
+            var db = new DataContext();
+            using (db)
+            {
+                db.Configuration.AutoDetectChangesEnabled = false;
+                db.Configuration.EnsureTransactionsForFunctionsAndCommands = false;
+                db.Configuration.LazyLoadingEnabled = false;
+                db.Configuration.ProxyCreationEnabled = false;
+                db.Configuration.UseDatabaseNullSemantics = false;
+                stopwatch = Stopwatch.StartNew();
+                customers = db.Customers.AsNoTracking().ToList();
+                stopwatch.Stop();
+            }
+            db = null;
+
+            Console.WriteLine("Entity Framework Rápido");
+            Console.WriteLine("Objetos Gerados: {0}", customers.Count);
+            Console.WriteLine("Tempo Total: {0}", stopwatch.Elapsed);
+
+            customers = null;
+        }
+        public static void EfMoreFastDataAccess()
+        {
+            List<Customer> customers;
+            Stopwatch stopwatch;
+            var db = new DataContext();
+            using (db)
+            {
+                db.Configuration.AutoDetectChangesEnabled = false;
+                db.Configuration.EnsureTransactionsForFunctionsAndCommands = false;
+                db.Configuration.LazyLoadingEnabled = false;
+                db.Configuration.ProxyCreationEnabled = false;
+                db.Configuration.UseDatabaseNullSemantics = false;
+                db.Customers.AsNoTracking().FirstOrDefault();
+                stopwatch = Stopwatch.StartNew();
+                customers = db.Customers.AsNoTracking().ToList();
+                stopwatch.Stop();
+            }
+            db = null;
+
+            Console.WriteLine("Entity Framework Mais Rápido");
+            Console.WriteLine("Objetos Gerados: {0}", customers.Count);
+            Console.WriteLine("Tempo Total: {0}", stopwatch.Elapsed);
+
+            customers = null;
         }
 
         public static void NhDataAccess()
         {
             var sessionFactory = CreateSessionFactory();
-            
+
             string connectionString = ConfigurationManager.ConnectionStrings["ConnectionString"].ConnectionString;
             List<Customer> customers = new List<Customer>();
 
-            var startDate = DateTime.Now;
+            var stopwatch = Stopwatch.StartNew();
             using (var session = sessionFactory.OpenSession())
             {
                 customers = session.Query<Customer>().ToList();
             }
-            var endDate = DateTime.Now;
+            stopwatch.Stop();
 
             Console.WriteLine("NHibernate");
             Console.WriteLine("Objetos Gerados: {0}", customers.Count);
-            Console.WriteLine("Início: {0}", startDate);
-            Console.WriteLine("Término: {0}", endDate);
-            Console.WriteLine("Tempo Total: {0}", (endDate - startDate));
+            Console.WriteLine("Tempo Total: {0}", stopwatch.Elapsed);
 
             customers = null;
             sessionFactory.Dispose();
